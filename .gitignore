@@ -1,0 +1,14 @@
+# Binary executables
+*.exe
+*.exe~
+*
+!*.*
+!*/
+
+# Debug files
+*.test
+*.out
+
+# Go temporary files
+*.o
+*.a
