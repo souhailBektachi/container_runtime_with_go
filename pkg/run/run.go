@@ -8,7 +8,13 @@ import (
 )
 
 func RunContainer(command string, args []string) error {
-	cmd := exec.Command(command, args...)
+	// Look up the absolute path of the command
+	cmdPath, err := exec.LookPath(command)
+	if err != nil {
+		return fmt.Errorf("command not found: %v", err)
+	}
+
+	cmd := exec.Command(cmdPath, args...)
 	applyNamespaces(cmd)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -23,7 +29,6 @@ func RunContainer(command string, args []string) error {
 	}
 
 	return nil
-
 }
 
 func applyNamespaces(cmd *exec.Cmd) {
