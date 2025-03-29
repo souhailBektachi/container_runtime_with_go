@@ -2,24 +2,38 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/souhailBektachi/container_runtime_with_go/cmd/commands"
+	"github.com/spf13/cobra"
 )
 
-func RunCli() {
+var rootCmd = &cobra.Command{
+	Use:   "container",
+	Short: "A simple container runtime",
+	Long:  "A simple container runtime implementation in Go",
+}
 
-	if len(os.Args) < 2 {
-		fmt.Println("Usage: container <command> [args]")
-		return
+func init() {
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "run",
+		Short: "Run a command in a container",
+		Long:  "Run a command in a container",
+		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) < 1 {
+				fmt.Println("Usage: container run <command> [args]")
+				return
+			}
+
+			if err := commands.RunCommand(); err != nil {
+				fmt.Printf("Error running command: %v\n", err)
+			}
+		},
+	})
+
+}
+
+func Execute() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Printf("Error executing command: %v\n", err)
 	}
-
-	switch os.Args[1] {
-	case "run":
-		commands.RunCommand()
-	default:
-		fmt.Println("Unknown command:", os.Args[1])
-
-	}
-
 }

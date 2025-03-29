@@ -7,7 +7,7 @@ import (
 	"github.com/souhailBektachi/container_runtime_with_go/pkg/run"
 )
 
-func RunCommand() {
+func RunCommand() error {
 	if len(os.Args) < 3 {
 		fmt.Println("Usage: mini-container run <command>")
 		os.Exit(1)
@@ -20,7 +20,8 @@ func RunCommand() {
 	}
 
 	if err := run.RunContainer(command, args); err != nil {
-		fmt.Printf("Error running command: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("error running container: %w", err)
 	}
+
+	return nil
 }
