@@ -12,3 +12,11 @@
 # Go temporary files
 *.o
 *.a
+
+
+
+
+
+
+# Go workspace files
+tasks.md
