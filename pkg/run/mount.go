@@ -129,11 +129,11 @@ func setupMounts(rootfsPath string, mounts []MountsConfig) error {
 		}
 
 		if (flags&syscall.MS_BIND != 0) && (flags&syscall.MS_RDONLY != 0) {
-			remountFlags := syscall.MS_BIND | syscall.MS_REMOUNT | syscall.MS_RDONLY
+			var remountFlags uintptr = syscall.MS_BIND | syscall.MS_REMOUNT | syscall.MS_RDONLY
 			remountFlags |= (flags & (syscall.MS_NOEXEC | syscall.MS_NODEV | syscall.MS_NOSUID))
 
 			fmt.Printf("Remounting '%s' as read-only (flags: 0x%x)\n", dest, remountFlags)
-			if err := syscall.Mount("", dest, "", remountFlags, ""); err != nil {
+			if err := syscall.Mount("", dest, "", remountFlags, ""); err != nil { //
 				return fmt.Errorf("failed to remount '%s' as read-only: %w", dest, err)
 			}
 		}
