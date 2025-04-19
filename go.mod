@@ -27,7 +27,12 @@ require (
 )
 
 require (
+	github.com/VividCortex/ewma v1.2.0 // indirect
+	github.com/etcd-io/bbolt v1.3.3 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
+	github.com/mattn/go-isatty v0.0.8 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
+	github.com/vbauerster/mpb v3.4.0+incompatible // indirect
+	golang.org/x/sync v0.10.0 // indirect
 )
