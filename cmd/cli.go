@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/souhailBektachi/container_runtime_with_go/cmd/commands"
 	"github.com/spf13/cobra"
 )
