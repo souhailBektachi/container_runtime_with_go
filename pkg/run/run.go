@@ -8,7 +8,7 @@ import (
 	"syscall"
 )
 
-func applyNamespaces(cmd *exec.Cmd, uid, gid int) {
+func ApplyNamespaces(cmd *exec.Cmd, uid, gid int) {
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Cloneflags: syscall.CLONE_NEWUTS |
@@ -60,7 +60,8 @@ func pivotRoot(newroot string) error {
 
 	return nil
 }
-func applyChroot(imageconf ImageConfig) error {
+
+func ApplyChroot(imageconf ImageConfig) error {
 	if err := pivotRoot(imageconf.Root.Path); err != nil {
 		return fmt.Errorf("Error applying pivot_root: %v", err)
 	}
@@ -76,7 +77,7 @@ func applyChroot(imageconf ImageConfig) error {
 	return nil
 }
 
-func setHostname(hostname string) error {
+func SetHostname(hostname string) error {
 
 	if err := syscall.Sethostname([]byte(hostname)); err != nil {
 		return fmt.Errorf("Error setting hostname: %v", err)
