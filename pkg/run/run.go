@@ -8,7 +8,7 @@ import (
 	"syscall"
 )
 
-func applyNamespaces(cmd *exec.Cmd) {
+func applyNamespaces(cmd *exec.Cmd, uid, gid int) {
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Cloneflags: syscall.CLONE_NEWUTS |
@@ -17,8 +17,8 @@ func applyNamespaces(cmd *exec.Cmd) {
 			syscall.CLONE_NEWIPC |
 			syscall.CLONE_NEWUSER |
 			syscall.CLONE_NEWNET,
-		UidMappings: []syscall.SysProcIDMap{{ContainerID: 0, HostID: os.Getuid(), Size: 1}},
-		GidMappings: []syscall.SysProcIDMap{{ContainerID: 0, HostID: os.Getgid(), Size: 1}},
+		UidMappings: []syscall.SysProcIDMap{{ContainerID: 0, HostID: uid, Size: 1}},
+		GidMappings: []syscall.SysProcIDMap{{ContainerID: 0, HostID: gid, Size: 1}},
 	}
 
 }
@@ -61,12 +61,26 @@ func pivotRoot(newroot string) error {
 	return nil
 }
 func applyChroot(imageconf ImageConfig) error {
-	if err := pivotRoot(imageconf.Rootfs); err != nil {
+	if err := pivotRoot(imageconf.Root.Path); err != nil {
 		return fmt.Errorf("Error applying pivot_root: %v", err)
+	}
+
+	if err := setupMounts("/", imageconf.MountsConfig); err != nil {
+		return fmt.Errorf("Error setting up mounts: %v", err)
 	}
 
 	if err := syscall.Chdir(imageconf.ProcessConfig.Cwd); err != nil {
 		return fmt.Errorf("Error changing directory: %v", err)
 	}
+
+	return nil
+}
+
+func setHostname(hostname string) error {
+
+	if err := syscall.Sethostname([]byte(hostname)); err != nil {
+		return fmt.Errorf("Error setting hostname: %v", err)
+	}
+
 	return nil
 }
