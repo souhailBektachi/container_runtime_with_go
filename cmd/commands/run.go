@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/google/uuid"
@@ -51,20 +52,55 @@ var runCmd = &cobra.Command{
 
 		manifestDigest, err := oci.GetImageManifestDigest(imageStorePath)
 		if err != nil {
+			os.RemoveAll(containerBasePath)
 			return fmt.Errorf("failed to get manifest digest for image '%s': %w", imageName, err)
 		}
+
+		isDockerFormat := strings.HasSuffix(manifestDigest, ".json") && !strings.Contains(manifestDigest, "/")
+		fmt.Printf("DEBUG: Detected format identifier: %s (Docker=%v)\n", manifestDigest, isDockerFormat)
+
 		manifest, err := oci.ReadManifest(imageStorePath, manifestDigest)
 		if err != nil {
+			os.RemoveAll(containerBasePath)
 			return fmt.Errorf("failed to read manifest for image '%s': %w", imageName, err)
 		}
-		ociConfig, err := oci.ReadConfig(imageStorePath, manifest.Config.Digest.String())
+		ociConfig, err := oci.ReadConfig(imageStorePath, manifestDigest)
 		if err != nil {
+			os.RemoveAll(containerBasePath)
 			return fmt.Errorf("failed to read config for image '%s': %w", imageName, err)
 		}
 
 		layerPaths := make([]string, len(manifest.Layers))
+		fmt.Printf("DEBUG: Processing %d layers...\n", len(manifest.Layers))
 		for i, layer := range manifest.Layers {
-			layerPaths[i] = filepath.Join(imageStorePath, "blobs", "sha256", oci.DigestToFilename(layer.Digest.String()))
+			layerDigestStr := layer.Digest.String()
+			fmt.Printf("DEBUG: Layer %d: Digest=%s\n", i, layerDigestStr)
+
+			layerID := oci.DigestToFilename(layerDigestStr)
+
+			dockerLayerPath := filepath.Join(imageStorePath, layerID, "layer.tar")
+			if _, err := os.Stat(dockerLayerPath); err == nil {
+				fmt.Printf("DEBUG: Layer %d: Using Docker format path at %s\n", i, dockerLayerPath)
+				layerPaths[i] = dockerLayerPath
+				continue
+			}
+
+			dockerLayerTarPath := filepath.Join(imageStorePath, layerID+".tar")
+			if _, err := os.Stat(dockerLayerTarPath); err == nil {
+				fmt.Printf("DEBUG: Layer %d: Using Docker format .tar path at %s\n", i, dockerLayerTarPath)
+				layerPaths[i] = dockerLayerTarPath
+				continue
+			}
+
+			ociLayerPath := filepath.Join(imageStorePath, "blobs", "sha256", layerID)
+			if _, err := os.Stat(ociLayerPath); err == nil {
+				fmt.Printf("DEBUG: Layer %d: Using OCI format path at %s\n", i, ociLayerPath)
+				layerPaths[i] = ociLayerPath
+				continue
+			}
+
+			os.RemoveAll(containerBasePath)
+			return fmt.Errorf("layer not found for digest %s at any expected location", layerDigestStr)
 		}
 
 		if err := oci.UnpackImageLayers(layerPaths, rootfsPath); err != nil {
