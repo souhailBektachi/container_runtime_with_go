@@ -1,65 +1,57 @@
 package oci
 
 import (
-	"context"
 	"fmt"
 	"os"
-	"strings"
-
-	"github.com/containers/image/copy"
-	"github.com/containers/image/signature"
-	"github.com/containers/image/transports"
-	"github.com/containers/image/types"
+	"os/exec"
+	"path/filepath"
 )
 
 func PullImage(imageDir, image string) ([]byte, error) {
-
 	if err := os.MkdirAll(imageDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create directory %s: %w", imageDir, err)
 	}
-	ctx := context.Background()
-	policyContext, err := getPolicyContext()
+
+	_, err := exec.LookPath("docker")
 	if err != nil {
-		return nil, fmt.Errorf("failed to get policy context: %w", err)
+		return nil, fmt.Errorf("Docker CLI is required but not found: %w", err)
 	}
 
-	srcRef, err := ParseImageName(image, "docker")
+	fmt.Printf("Pulling image %s using Docker CLI...\n", image)
+
+	pullCmd := exec.Command("docker", "pull", image)
+	pullCmd.Stdout = os.Stdout
+	pullCmd.Stderr = os.Stderr
+	if err := pullCmd.Run(); err != nil {
+		return nil, fmt.Errorf("failed to pull image using Docker CLI: %w", err)
+	}
+
+	tempDir, err := os.MkdirTemp("", "container-with-go-")
 	if err != nil {
-		return nil, fmt.Errorf("invalid image name %s: %w", image, err)
+		return nil, fmt.Errorf("failed to create temp directory: %w", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	tarPath := filepath.Join(tempDir, "image.tar")
+	saveCmd := exec.Command("docker", "save", "-o", tarPath, image)
+	saveCmd.Stdout = os.Stdout
+	saveCmd.Stderr = os.Stderr
+	if err := saveCmd.Run(); err != nil {
+		return nil, fmt.Errorf("failed to save image to tar: %w", err)
 	}
 
-	destRef, err := ParseImageName(image, "oci")
-	if err != nil {
-		return nil, fmt.Errorf("failed to set destination name %s: %w", image, err)
-	}
-	return copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{})
-}
-
-func ParseImageName(imgName, transporttype string) (types.ImageReference, error) {
-
-	transport := transports.Get(transporttype)
-	if transport == nil {
-		return nil, fmt.Errorf("failed to get image transport type")
+	if err := os.MkdirAll(imageDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create image directory: %w", err)
 	}
 
-	if transporttype == "docker" && !strings.HasPrefix(imgName, "//") {
-		imgName = fmt.Sprintf("//%s", imgName)
+	extractCmd := exec.Command("tar", "-xf", tarPath, "-C", imageDir)
+	extractCmd.Stdout = os.Stdout
+	extractCmd.Stderr = os.Stderr
+	if err := extractCmd.Run(); err != nil {
+		return nil, fmt.Errorf("failed to extract image tar: %w", err)
 	}
 
-	ref, err := transport.ParseReference(imgName)
+	fmt.Printf("Image %s successfully pulled and extracted to %s\n", image, imageDir)
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse image name %s: %w", imgName, err)
-	}
-
-	return ref, nil
-}
-
-func getPolicyContext() (*signature.PolicyContext, error) {
-	policy := &signature.Policy{
-		Default: signature.PolicyRequirements{signature.NewPRInsecureAcceptAnything()},
-	}
-
-	return signature.NewPolicyContext(policy)
-
+	return []byte{}, nil
 }
