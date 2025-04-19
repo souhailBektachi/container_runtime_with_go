@@ -25,3 +25,9 @@ require (
 	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734
 	golang.org/x/sys v0.29.0
 )
+
+require (
+	github.com/klauspost/compress v1.17.11 // indirect
+	github.com/klauspost/pgzip v1.2.6 // indirect
+	github.com/ulikunitz/xz v0.5.12 // indirect
+)
