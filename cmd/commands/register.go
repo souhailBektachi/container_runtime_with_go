@@ -7,4 +7,5 @@ func RegisterCommands(root *cobra.Command) {
 	root.AddCommand(rmCmd)
 	root.AddCommand(listCmd)
 	root.AddCommand(pullCmd)
+	root.AddCommand(startCmd) // Add the start command
 }
