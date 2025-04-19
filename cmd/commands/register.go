@@ -6,4 +6,5 @@ func RegisterCommands(root *cobra.Command) {
 	root.AddCommand(runCmd)
 	root.AddCommand(rmCmd)
 	root.AddCommand(listCmd)
+	root.AddCommand(pullCmd)
 }
